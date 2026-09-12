@@ -339,3 +339,4 @@ internal_key.key_id_invalid: "密钥 ID 只能包含 1-64 位字母、数字、�
 internal_key.key_id_duplicate: "密钥 ID 已存在"
 internal_key.key_invalid: "密钥长度须为 8-128 个字符"
 internal_key.name_too_long: "名称最长 128 个字符"
+internal_key.oidc_id_required: "缺少 oidc_id 参数"

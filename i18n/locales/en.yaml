@@ -338,3 +338,4 @@ internal_key.key_id_invalid: "Key ID must be 1-64 characters consisting of lette
 internal_key.key_id_duplicate: "Key ID already exists"
 internal_key.key_invalid: "Key must be 8-128 characters"
 internal_key.name_too_long: "Name must be at most 128 characters"
+internal_key.oidc_id_required: "oidc_id is required"

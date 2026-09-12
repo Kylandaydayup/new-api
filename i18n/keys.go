@@ -396,4 +396,5 @@ const (
 	MsgInternalKeyKeyIdDuplicate     = "internal_key.key_id_duplicate"
 	MsgInternalKeyKeyInvalid         = "internal_key.key_invalid"
 	MsgInternalKeyNameTooLong        = "internal_key.name_too_long"
+	MsgInternalKeyOidcIdRequired     = "internal_key.oidc_id_required"
 )

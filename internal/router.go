@@ -26,5 +26,7 @@ func RegisterRoutes(api *gin.RouterGroup) {
 	internalRoutes.Use(InternalAuth())
 	{
 		internalRoutes.GET("/ping", internalAuthCheck)
+		// 凭 OIDC 用户 ID（Casdoor sub）获取用户专用 system 密钥。
+		internalRoutes.GET("/user/api-keys", internalUserApiKeys)
 	}
 }

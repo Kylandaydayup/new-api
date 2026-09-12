@@ -16,18 +16,21 @@ import (
 )
 
 // setupTestDB points model.DB at a fresh in-memory SQLite database migrated
-// for internal key tests, mirroring the enterprise module's test setup.
+// for internal package tests, mirroring the enterprise module's test setup.
 func setupTestDB(t *testing.T) {
 	t.Helper()
 	common.SetDatabaseTypes(common.DatabaseTypeSQLite, common.DatabaseTypeSQLite)
 	common.RedisEnabled = false
+	// Keep FinalizeOAuthUserCreation free of log writes so tests only need the
+	// users/tokens/internal_keys tables.
+	common.QuotaForNewUser = 0
 
 	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
 	require.NoError(t, err)
 	sqlDB, err := db.DB()
 	require.NoError(t, err)
 	sqlDB.SetMaxOpenConns(1)
-	require.NoError(t, db.AutoMigrate(&InternalKey{}))
+	require.NoError(t, db.AutoMigrate(&InternalKey{}, &model.User{}, &model.Token{}))
 
 	model.DB = db
 }
