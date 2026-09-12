@@ -50,6 +50,15 @@ func InternalAuth() func(c *gin.Context) {
 		}
 		c.Set("internal_key_id", internalKey.KeyId)
 		c.Set("internal_key_name", internalKey.Name)
+		if !internalKey.IpAllowed(c.ClientIP()) {
+			common.SysLog("[internal] key=" + internalKey.KeyId + " rejected: source IP " + c.ClientIP() + " is not in the whitelist")
+			c.JSON(http.StatusForbidden, gin.H{
+				"success": false,
+				"message": common.TranslateMessage(c, i18n.MsgInternalKeyIpNotAllowed),
+			})
+			c.Abort()
+			return
+		}
 		c.Next()
 	}
 }

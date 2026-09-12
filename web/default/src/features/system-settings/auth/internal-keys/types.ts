@@ -10,6 +10,7 @@ export type InternalKey = {
   key_id: string
   key: string
   name: string
+  ip_whitelist: string | null
   status: number
   created_time: number
   accessed_time: number
@@ -32,6 +33,22 @@ export const internalKeyFormSchema = z.object({
     .refine((value) => value === '' || value.length >= 8, {
       message: 'Key must be 8-128 characters',
     }),
+  ip_whitelist: z
+    .string()
+    .trim()
+    .max(512, 'IP whitelist is too long')
+    .refine(
+      (value) =>
+        value === '' ||
+        value.split(',').every((entry) => {
+          const item = entry.trim()
+          return item !== '' && /^[A-Za-z0-9.:/-]+$/.test(item)
+        }),
+      {
+        message:
+          'IP whitelist entries must be valid IPs, CIDR blocks or localhost',
+      }
+    ),
   enabled: z.boolean().default(true),
 })
 

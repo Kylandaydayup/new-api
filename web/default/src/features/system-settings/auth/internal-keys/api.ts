@@ -18,6 +18,7 @@ export async function createInternalKey(data: {
   name: string
   status: number
   key?: string
+  ip_whitelist?: string
 }): Promise<ApiResponse<InternalKey>> {
   const res = await api.post('/api/internal_key/', data)
   return res.data
@@ -28,6 +29,7 @@ export async function updateInternalKey(data: {
   name: string
   status: number
   key?: string
+  ip_whitelist?: string
 }): Promise<ApiResponse<InternalKey>> {
   const res = await api.put('/api/internal_key/', data)
   return res.data

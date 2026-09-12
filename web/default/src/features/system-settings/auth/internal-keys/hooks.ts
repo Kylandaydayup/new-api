@@ -29,6 +29,7 @@ export function useCreateInternalKey() {
       name: string
       status: number
       key?: string
+      ip_whitelist?: string
     }) => createInternalKey(data),
     onSuccess: (res) => {
       if (res.success) {
@@ -50,6 +51,7 @@ export function useUpdateInternalKey() {
       name: string
       status: number
       key?: string
+      ip_whitelist?: string
     }) => updateInternalKey(data),
     onSuccess: (res) => {
       if (res.success) {

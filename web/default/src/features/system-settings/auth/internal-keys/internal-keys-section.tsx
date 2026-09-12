@@ -170,6 +170,20 @@ export function InternalKeysSection() {
             ),
           },
           {
+            id: 'ip-whitelist',
+            header: t('IP Whitelist'),
+            cell: (keyRecord) =>
+              keyRecord.ip_whitelist ? (
+                <span className='text-muted-foreground max-w-[200px] truncate font-mono text-xs'>
+                  {keyRecord.ip_whitelist}
+                </span>
+              ) : (
+                <span className='text-muted-foreground text-xs'>
+                  {t('Unrestricted')}
+                </span>
+              ),
+          },
+          {
             id: 'status',
             header: t('Status'),
             cell: (keyRecord) => (

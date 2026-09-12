@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"net"
 	"net/http"
 	"strconv"
 	"strings"
@@ -27,6 +28,31 @@ func getAllInternalKeys(c *gin.Context) {
 
 func validateInternalKeyName(name string) bool {
 	return utf8.RuneCountInString(name) <= 128
+}
+
+// normalizeInternalKeyIpWhitelist trims, validates and deduplicates a
+// comma-separated whitelist of IPs, CIDR blocks and the "localhost" keyword.
+func normalizeInternalKeyIpWhitelist(raw string) (string, error) {
+	var entries []string
+	seen := make(map[string]bool)
+	for _, entry := range strings.Split(raw, ",") {
+		entry = strings.TrimSpace(entry)
+		if entry == "" {
+			continue
+		}
+		if strings.EqualFold(entry, "localhost") {
+			entry = "localhost"
+		} else if net.ParseIP(entry) == nil {
+			if _, _, err := net.ParseCIDR(entry); err != nil {
+				return "", err
+			}
+		}
+		if !seen[entry] {
+			seen[entry] = true
+			entries = append(entries, entry)
+		}
+	}
+	return strings.Join(entries, ","), nil
 }
 
 func addInternalKey(c *gin.Context) {
@@ -56,6 +82,14 @@ func addInternalKey(c *gin.Context) {
 	case len(customKey) < internalKeySecretMinLength || len(customKey) > internalKeySecretMaxLength:
 		common.ApiErrorI18n(c, i18n.MsgInternalKeyKeyInvalid)
 		return
+	}
+	if internalKey.IpWhitelist != nil {
+		normalized, err := normalizeInternalKeyIpWhitelist(*internalKey.IpWhitelist)
+		if err != nil {
+			common.ApiErrorI18n(c, i18n.MsgInternalKeyIpWhitelistInvalid)
+			return
+		}
+		internalKey.IpWhitelist = &normalized
 	}
 	exists, err := InternalKeyKeyIdExists(internalKey.KeyId)
 	if err != nil {
@@ -115,6 +149,16 @@ func updateInternalKey(c *gin.Context) {
 	if newKey != "" {
 		cleanKey.Key = newKey
 		fields = append(fields, "key")
+	}
+	// nil 表示请求未携带 ip_whitelist，保持原值；携带空串则清空白名单（不限来源）。
+	if internalKey.IpWhitelist != nil {
+		normalized, err := normalizeInternalKeyIpWhitelist(*internalKey.IpWhitelist)
+		if err != nil {
+			common.ApiErrorI18n(c, i18n.MsgInternalKeyIpWhitelistInvalid)
+			return
+		}
+		cleanKey.IpWhitelist = &normalized
+		fields = append(fields, "ip_whitelist")
 	}
 	if err := cleanKey.Update(fields...); err != nil {
 		common.ApiError(c, err)

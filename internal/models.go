@@ -4,7 +4,9 @@ import (
 	"crypto/subtle"
 	"errors"
 	"fmt"
+	"net"
 	"regexp"
+	"strings"
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/model"
@@ -24,13 +26,14 @@ const (
 var internalKeyKeyIdPattern = regexp.MustCompile(`^[A-Za-z0-9_-]{1,64}$`)
 
 type InternalKey struct {
-	Id           int    `json:"id"`
-	KeyId        string `json:"key_id" gorm:"type:varchar(64);uniqueIndex"`
-	Key          string `json:"key" gorm:"type:varchar(128)"`
-	Name         string `json:"name" gorm:"type:varchar(128)"`
-	Status       int    `json:"status" gorm:"default:1"`
-	CreatedTime  int64  `json:"created_time" gorm:"bigint"`
-	AccessedTime int64  `json:"accessed_time" gorm:"bigint"`
+	Id           int     `json:"id"`
+	KeyId        string  `json:"key_id" gorm:"type:varchar(64);uniqueIndex"`
+	Key          string  `json:"key" gorm:"type:varchar(128)"`
+	Name         string  `json:"name" gorm:"type:varchar(128)"`
+	IpWhitelist  *string `json:"ip_whitelist" gorm:"type:varchar(512)"`
+	Status       int     `json:"status" gorm:"default:1"`
+	CreatedTime  int64   `json:"created_time" gorm:"bigint"`
+	AccessedTime int64   `json:"accessed_time" gorm:"bigint"`
 }
 
 func (InternalKey) TableName() string { return "internal_keys" }
@@ -44,6 +47,40 @@ var (
 // 1-64 characters of letters, digits, hyphens or underscores.
 func ValidateInternalKeyKeyId(keyId string) bool {
 	return internalKeyKeyIdPattern.MatchString(keyId)
+}
+
+// IpAllowed reports whether clientIP may use this key. An empty or missing
+// whitelist allows any source IP. Entries are comma-separated IPs, CIDR
+// blocks or the literal "localhost" (any loopback address).
+func (internalKey *InternalKey) IpAllowed(clientIP string) bool {
+	whitelist := ""
+	if internalKey.IpWhitelist != nil {
+		whitelist = strings.TrimSpace(*internalKey.IpWhitelist)
+	}
+	if whitelist == "" {
+		return true
+	}
+	ip := net.ParseIP(clientIP)
+	if ip == nil {
+		return false
+	}
+	var networks []string
+	loopbackOk := false
+	for _, entry := range strings.Split(whitelist, ",") {
+		entry = strings.TrimSpace(entry)
+		if entry == "" {
+			continue
+		}
+		if strings.EqualFold(entry, "localhost") {
+			loopbackOk = true
+			continue
+		}
+		networks = append(networks, entry)
+	}
+	if loopbackOk && ip.IsLoopback() {
+		return true
+	}
+	return common.IsIpInCIDRList(ip, networks)
 }
 
 func GetAllInternalKeys() ([]*InternalKey, error) {

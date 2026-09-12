@@ -50,6 +50,7 @@ export function InternalKeyFormDialog(props: InternalKeyFormDialogProps) {
       key_id: '',
       name: '',
       key: '',
+      ip_whitelist: '',
       enabled: true,
     },
   })
@@ -61,6 +62,7 @@ export function InternalKeyFormDialog(props: InternalKeyFormDialogProps) {
         key_id: props.keyRecord.key_id,
         name: props.keyRecord.name,
         key: '',
+        ip_whitelist: props.keyRecord.ip_whitelist ?? '',
         enabled: props.keyRecord.status === INTERNAL_KEY_STATUS.ENABLED,
       })
     } else {
@@ -68,6 +70,7 @@ export function InternalKeyFormDialog(props: InternalKeyFormDialogProps) {
         key_id: '',
         name: '',
         key: '',
+        ip_whitelist: '',
         enabled: true,
       })
     }
@@ -82,6 +85,7 @@ export function InternalKeyFormDialog(props: InternalKeyFormDialogProps) {
           ? INTERNAL_KEY_STATUS.ENABLED
           : INTERNAL_KEY_STATUS.DISABLED,
         key: values.key === '' ? undefined : values.key,
+        ip_whitelist: values.ip_whitelist,
       })
       if (res.success) {
         props.onOpenChange(false)
@@ -94,6 +98,7 @@ export function InternalKeyFormDialog(props: InternalKeyFormDialogProps) {
           ? INTERNAL_KEY_STATUS.ENABLED
           : INTERNAL_KEY_STATUS.DISABLED,
         key: values.key === '' ? undefined : values.key,
+        ip_whitelist: values.ip_whitelist,
       })
       if (res.success) {
         props.onOpenChange(false)
@@ -202,6 +207,29 @@ export function InternalKeyFormDialog(props: InternalKeyFormDialogProps) {
                   {isEditing
                     ? t('Leave blank to keep the current key.')
                     : t('Sent as-is with the X-Key header.')}
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name='ip_whitelist'
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>{t('IP Whitelist')}</FormLabel>
+                <FormControl>
+                  <Input
+                    {...field}
+                    autoComplete='off'
+                    placeholder={t('e.g. 127.0.0.1, 10.0.0.0/8, localhost')}
+                    className='font-mono'
+                  />
+                </FormControl>
+                <FormDescription>
+                  {t(
+                    'Restrict which source IPs may use this internal key. Comma-separated IPs, CIDR blocks or "localhost". Leave empty to allow any IP.'
+                  )}
                 </FormDescription>
                 <FormMessage />
               </FormItem>
