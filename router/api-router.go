@@ -3,6 +3,7 @@ package router
 import (
 	"github.com/QuantumNous/new-api/controller"
 	"github.com/QuantumNous/new-api/enterprise"
+	"github.com/QuantumNous/new-api/internal"
 	"github.com/QuantumNous/new-api/middleware"
 
 	// Import oauth package to register providers via init()
@@ -266,6 +267,9 @@ func SetApiRouter(router *gin.Engine) {
 			redemptionRoute.DELETE("/invalid", controller.DeleteInvalidRedemption)
 			redemptionRoute.DELETE("/:id", controller.DeleteRedemption)
 		}
+
+		// 内部系统鉴权密钥管理与内部调用接口，集中在 internal 包维护。
+		internal.RegisterRoutes(apiRouter)
 		logRoute := apiRouter.Group("/log")
 		logRoute.GET("/", middleware.AdminAuth(), controller.GetAllLogs)
 		// Legacy synchronous direct-delete route used only by the classic frontend.
