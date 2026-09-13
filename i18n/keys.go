@@ -397,6 +397,7 @@ const (
 	MsgInternalKeyKeyInvalid         = "internal_key.key_invalid"
 	MsgInternalKeyNameTooLong        = "internal_key.name_too_long"
 	MsgInternalKeyOidcIdRequired     = "internal_key.oidc_id_required"
-	MsgInternalKeyIpWhitelistInvalid = "internal_key.ip_whitelist_invalid"
-	MsgInternalKeyIpNotAllowed       = "internal_key.ip_not_allowed"
+	MsgInternalKeyIpWhitelistInvalid  = "internal_key.ip_whitelist_invalid"
+	MsgInternalKeyIpWhitelistTooLong  = "internal_key.ip_whitelist_too_long"
+	MsgInternalKeyIpNotAllowed        = "internal_key.ip_not_allowed"
 )

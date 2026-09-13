@@ -228,7 +228,7 @@ export function InternalKeyFormDialog(props: InternalKeyFormDialogProps) {
                 </FormControl>
                 <FormDescription>
                   {t(
-                    'Restrict which source IPs may use this internal key. Comma-separated IPs, CIDR blocks or "localhost". Leave empty to allow any IP.'
+                    'Restrict which source IPs may use this internal key. Comma-separated IPs, CIDR blocks or "localhost". Leave empty to allow any IP. The check uses the direct connection IP: when behind a reverse proxy, add the proxy IP to the list.'
                   )}
                 </FormDescription>
                 <FormMessage />

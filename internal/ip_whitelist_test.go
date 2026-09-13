@@ -1,8 +1,10 @@
 package internal
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/QuantumNous/new-api/common"
@@ -54,6 +56,16 @@ func TestNormalizeInternalKeyIpWhitelist(t *testing.T) {
 
 	_, err = normalizeInternalKeyIpWhitelist("10.0.0.0/99")
 	assert.Error(t, err)
+
+	// 规范化后超过列宽 varchar(512) 的输入必须被拒绝，防止依赖数据库各自的超宽行为。
+	entries := make([]string, 0, 50)
+	for i := 0; i < 50; i++ {
+		entries = append(entries, fmt.Sprintf("10.%d.0.0/16", i))
+	}
+	longInput := strings.Join(entries, ",")
+	require.Greater(t, len(longInput), internalKeyIpWhitelistMaxLength)
+	_, err = normalizeInternalKeyIpWhitelist(longInput)
+	require.ErrorIs(t, err, ErrIpWhitelistTooLong)
 }
 
 func TestInternalAuthEnforcesIpWhitelist(t *testing.T) {
@@ -92,4 +104,15 @@ func TestInternalAuthEnforcesIpWhitelist(t *testing.T) {
 	forbidden := do("192.0.2.1:54321")
 	assert.Equal(t, http.StatusForbidden, forbidden.Code)
 	assert.Contains(t, forbidden.Body.String(), `"success":false`)
+
+	// 白名单按 TCP 直连对端判定：伪造的转发头不能让外部地址冒充回环来源。
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet, "/ping", nil)
+	req.RemoteAddr = "192.0.2.1:54321"
+	req.Header.Set("X-Forwarded-For", "127.0.0.1")
+	req.Header.Set("X-Real-Ip", "127.0.0.1")
+	req.Header.Set("X-Key-Id", "restricted")
+	req.Header.Set("X-Key", "whitelisted-secret-1")
+	router.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusForbidden, w.Code)
 }
