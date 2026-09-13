@@ -22,10 +22,13 @@ import (
 // a deleted one is provisioned again on the next internal call.
 const systemTokenName = "system"
 
-// internalUserApiKeys resolves a user by their OIDC id (the Casdoor `sub` when
-// Casdoor is wired through the built-in OIDC provider) and returns that user's
-// dedicated "system" API key:
+// internalUserApiKeys resolves a user by their OIDC id (the Casdoor `sub`,
+// whether Casdoor is wired through the built-in OIDC provider or as a custom
+// OAuth2 provider) and returns that user's dedicated "system" API key:
 //
+//   - a custom-provider login binding carrying the same provider user id takes
+//     precedence, so the key lands on the account the user actually logs in
+//     with instead of on a synthetic one
 //   - unknown oidc_id: provisions a user account via the same flow as OIDC
 //     login registration (no RegisterEnabled gate — the internal key already
 //     carries root-level trust)
@@ -42,13 +45,7 @@ func internalUserApiKeys(c *gin.Context) {
 		return
 	}
 
-	user := &model.User{}
-	err := model.DB.Where("oidc_id = ?", oidcId).First(user).Error
-	userCreated := false
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		user, err = createOidcUser(oidcId)
-		userCreated = true
-	}
+	user, userCreated, err := resolveOidcUser(oidcId)
 	if err != nil {
 		common.ApiError(c, err)
 		return
@@ -98,6 +95,52 @@ func internalUserApiKeys(c *gin.Context) {
 		"message": "",
 		"data":    data,
 	})
+}
+
+// resolveOidcUser maps an OIDC id (the Casdoor `sub`) to a new-api account:
+//
+//  1. custom OAuth2 bindings — when Casdoor is wired as a custom provider the
+//     login binding lives in user_oauth_bindings (users.oidc_id stays empty
+//     there), so the binding is the only link to the account the user logs in
+//     with; it wins to keep the system token off a parallel synthetic account
+//  2. users.oidc_id — accounts from the built-in OIDC provider or from earlier
+//     internal provisioning
+//  3. otherwise provision a new account via the OIDC registration flow
+//
+// A provider_user_id bound to more than one distinct user is ambiguous and
+// skipped: issuing the key on a guessed account would be worse than missing
+// the binding.
+func resolveOidcUser(oidcId string) (*model.User, bool, error) {
+	var bindings []*model.UserOAuthBinding
+	if err := model.DB.Where("provider_user_id = ?", oidcId).Order("id").Find(&bindings).Error; err != nil {
+		return nil, false, err
+	}
+	distinctUsers := make(map[int]struct{})
+	boundUserId := 0
+	for _, b := range bindings {
+		if _, ok := distinctUsers[b.UserId]; !ok {
+			distinctUsers[b.UserId] = struct{}{}
+			boundUserId = b.UserId
+		}
+	}
+	if len(distinctUsers) == 1 {
+		user := &model.User{}
+		if err := model.DB.First(user, boundUserId).Error; err != nil {
+			return nil, false, err
+		}
+		return user, false, nil
+	}
+
+	user := &model.User{}
+	err := model.DB.Where("oidc_id = ?", oidcId).First(user).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		user, err = createOidcUser(oidcId)
+		return user, true, err
+	}
+	if err != nil {
+		return nil, false, err
+	}
+	return user, false, nil
 }
 
 // createOidcUser provisions a user account bound to the given OIDC id, keeping

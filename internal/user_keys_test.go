@@ -153,6 +153,92 @@ func TestInternalUserApiKeysRecognizesExistingUser(t *testing.T) {
 	assert.True(t, resp.Data.CreatedToken)
 }
 
+func TestInternalUserApiKeysReusesCustomOAuthBoundUser(t *testing.T) {
+	setupTestDB(t)
+
+	// Casdoor wired as a custom OAuth2 provider: the login binding lives in
+	// user_oauth_bindings and the real account never gets users.oidc_id set.
+	bound := &model.User{
+		Username:    "edreamtest03",
+		DisplayName: "eDream Test 03",
+		Role:        common.RoleCommonUser,
+		Status:      common.UserStatusEnabled,
+		AffCode:     "edream03",
+	}
+	require.NoError(t, model.DB.Create(bound).Error)
+	require.NoError(t, model.DB.Create(&model.UserOAuthBinding{
+		UserId:         bound.Id,
+		ProviderId:     1,
+		ProviderUserId: "casdoor-sub-5",
+	}).Error)
+
+	resp := callUserApiKeys(t, "casdoor-sub-5")
+	require.True(t, resp.Success, resp.Message)
+	assert.False(t, resp.Data.CreatedUser)
+	assert.Equal(t, bound.Id, resp.Data.User.Id)
+	assert.Equal(t, "edreamtest03", resp.Data.User.Username)
+	// Reused account keeps its binding-only identity; no oidc_id backfill.
+	assert.Empty(t, resp.Data.User.OidcId)
+	require.NotNil(t, resp.Data.Token)
+	assert.True(t, resp.Data.CreatedToken)
+
+	var stored model.Token
+	require.NoError(t, model.DB.Where("user_id = ? AND name = ?", bound.Id, systemTokenName).First(&stored).Error)
+}
+
+func TestInternalUserApiKeysPrefersBoundUserOverProvisioned(t *testing.T) {
+	setupTestDB(t)
+
+	// Production split-brain shape: an earlier internal call provisioned a
+	// synthetic user before the person ever logged in via the custom provider.
+	// Once the real binding exists it must win, moving the system token to the
+	// account the user actually logs in with.
+	synthetic := callUserApiKeys(t, "casdoor-sub-6")
+	require.True(t, synthetic.Data.CreatedUser)
+
+	real := &model.User{
+		Username: "real",
+		Role:     common.RoleCommonUser,
+		Status:   common.UserStatusEnabled,
+		AffCode:  "real6",
+	}
+	require.NoError(t, model.DB.Create(real).Error)
+	require.NoError(t, model.DB.Create(&model.UserOAuthBinding{
+		UserId:         real.Id,
+		ProviderId:     1,
+		ProviderUserId: "casdoor-sub-6",
+	}).Error)
+
+	resp := callUserApiKeys(t, "casdoor-sub-6")
+	require.True(t, resp.Success, resp.Message)
+	assert.False(t, resp.Data.CreatedUser)
+	assert.Equal(t, real.Id, resp.Data.User.Id)
+
+	// The system token is issued on the real account, not on the synthetic one.
+	var realToken model.Token
+	require.NoError(t, model.DB.Where("user_id = ? AND name = ?", real.Id, systemTokenName).First(&realToken).Error)
+	assert.Equal(t, common.TokenStatusEnabled, realToken.Status)
+}
+
+func TestInternalUserApiKeysSkipsAmbiguousBindings(t *testing.T) {
+	setupTestDB(t)
+
+	// The same provider_user_id bound under two different providers to two
+	// different users: the binding cannot identify the account, so resolution
+	// must skip it rather than issue the key on a guessed user.
+	first := &model.User{Username: "first", Role: common.RoleCommonUser, Status: common.UserStatusEnabled, AffCode: "amb1"}
+	second := &model.User{Username: "second", Role: common.RoleCommonUser, Status: common.UserStatusEnabled, AffCode: "amb2"}
+	require.NoError(t, model.DB.Create(first).Error)
+	require.NoError(t, model.DB.Create(second).Error)
+	require.NoError(t, model.DB.Create(&model.UserOAuthBinding{UserId: first.Id, ProviderId: 1, ProviderUserId: "casdoor-sub-7"}).Error)
+	require.NoError(t, model.DB.Create(&model.UserOAuthBinding{UserId: second.Id, ProviderId: 2, ProviderUserId: "casdoor-sub-7"}).Error)
+
+	resp := callUserApiKeys(t, "casdoor-sub-7")
+	require.True(t, resp.Success, resp.Message)
+	assert.NotEqual(t, first.Id, resp.Data.User.Id)
+	assert.NotEqual(t, second.Id, resp.Data.User.Id)
+}
+
 func TestInternalUserApiKeysRequiresOidcId(t *testing.T) {
 	setupTestDB(t)
 

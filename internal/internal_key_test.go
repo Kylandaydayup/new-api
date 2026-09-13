@@ -30,7 +30,7 @@ func setupTestDB(t *testing.T) {
 	sqlDB, err := db.DB()
 	require.NoError(t, err)
 	sqlDB.SetMaxOpenConns(1)
-	require.NoError(t, db.AutoMigrate(&InternalKey{}, &model.User{}, &model.Token{}))
+	require.NoError(t, db.AutoMigrate(&InternalKey{}, &model.User{}, &model.Token{}, &model.UserOAuthBinding{}))
 
 	model.DB = db
 }
