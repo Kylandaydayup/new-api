@@ -16,15 +16,16 @@ import (
 	"gorm.io/gorm"
 )
 
-// systemTokenName is the reserved token name provisioned for internal systems
-// per user. Users can disable or delete it from the regular token UI; a
-// disabled token means the user does not authorize this internal system, while
-// a deleted one is provisioned again on the next internal call.
-const systemTokenName = "system"
+// defaultTokenName is the token name used when the caller does not pass
+// key_name. Users can disable or delete the named token from the regular
+// token UI; a disabled token means the user does not authorize this internal
+// system, while a deleted one is provisioned again on the next internal call.
+const defaultTokenName = "system"
 
 // internalUserApiKeys resolves a user by their OIDC id (the Casdoor `sub`,
 // whether Casdoor is wired through the built-in OIDC provider or as a custom
-// OAuth2 provider) and returns that user's dedicated "system" API key:
+// OAuth2 provider) and returns that user's dedicated API key, named after the
+// optional key_name parameter (default "system"):
 //
 //   - a custom-provider login binding carrying the same provider user id takes
 //     precedence, so the key lands on the account the user actually logs in
@@ -32,8 +33,9 @@ const systemTokenName = "system"
 //   - unknown oidc_id: provisions a user account via the same flow as OIDC
 //     login registration (no RegisterEnabled gate — the internal key already
 //     carries root-level trust)
-//   - no "system" token yet: creates one (enabled, unlimited quota, never
-//     expires)
+//   - no token under that name yet: creates one (enabled, unlimited quota,
+//     never expires); an existing user-created token with the same name is
+//     reused as-is
 //   - token disabled by the user: returns an empty token — the user does not
 //     authorize this internal system to use an API key
 //
@@ -44,6 +46,14 @@ func internalUserApiKeys(c *gin.Context) {
 		common.ApiErrorI18n(c, i18n.MsgInternalKeyOidcIdRequired)
 		return
 	}
+	keyName := strings.TrimSpace(c.Query("key_name"))
+	if keyName == "" {
+		keyName = defaultTokenName
+	}
+	if len(keyName) > 50 {
+		common.ApiErrorI18n(c, i18n.MsgTokenNameTooLong)
+		return
+	}
 
 	user, userCreated, err := resolveOidcUser(oidcId)
 	if err != nil {
@@ -51,7 +61,7 @@ func internalUserApiKeys(c *gin.Context) {
 		return
 	}
 
-	token, tokenCreated, err := getOrCreateSystemToken(user.Id)
+	token, tokenCreated, err := getOrCreateToken(user.Id, keyName)
 	if err != nil {
 		common.ApiError(c, err)
 		return
@@ -88,8 +98,8 @@ func internalUserApiKeys(c *gin.Context) {
 			"accessed_time":   token.AccessedTime,
 		}
 	}
-	common.SysLog(fmt.Sprintf("[internal] key=%s queried user api-keys: oidc_id=%s user_id=%d user_created=%v token_id=%d token_created=%v",
-		c.GetString("internal_key_id"), oidcId, user.Id, userCreated, token.Id, tokenCreated))
+	common.SysLog(fmt.Sprintf("[internal] key=%s queried user api-keys: oidc_id=%s user_id=%d user_created=%v token_name=%s token_id=%d token_created=%v",
+		c.GetString("internal_key_id"), oidcId, user.Id, userCreated, token.Name, token.Id, tokenCreated))
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "",
@@ -169,12 +179,12 @@ func createOidcUser(oidcId string) (*model.User, error) {
 	return user, nil
 }
 
-// getOrCreateSystemToken returns the user's "system" token, creating it on
-// first use. Lookup picks the newest match so a stray duplicate (two calls
+// getOrCreateToken returns the user's token under the given name, creating it
+// on first use. Lookup picks the newest match so a stray duplicate (two calls
 // racing on creation for the same brand-new user) converges on one token.
-func getOrCreateSystemToken(userId int) (*model.Token, bool, error) {
+func getOrCreateToken(userId int, name string) (*model.Token, bool, error) {
 	token := &model.Token{}
-	err := model.DB.Where("user_id = ? AND name = ?", userId, systemTokenName).
+	err := model.DB.Where("user_id = ? AND name = ?", userId, name).
 		Order("id desc").First(token).Error
 	if err == nil {
 		return token, false, nil
@@ -189,7 +199,7 @@ func getOrCreateSystemToken(userId int) (*model.Token, bool, error) {
 	token = &model.Token{
 		UserId:         userId,
 		Key:            key,
-		Name:           systemTokenName,
+		Name:           name,
 		Status:         common.TokenStatusEnabled,
 		CreatedTime:    common.GetTimestamp(),
 		ExpiredTime:    -1,
