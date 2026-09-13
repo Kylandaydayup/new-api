@@ -21,7 +21,15 @@ const (
 	internalKeySecretLength    = 48
 	internalKeySecretMinLength = 8
 	internalKeySecretMaxLength = 128
+
+	// 与 ip_whitelist 列 varchar(512) 对齐；超长时拒绝写入而不是依赖各数据库
+	// 对超宽值的不同行为（PostgreSQL 报错、MySQL 非严格模式静默截断）。
+	internalKeyIpWhitelistMaxLength = 512
 )
+
+// ErrIpWhitelistTooLong reports a whitelist that exceeds
+// internalKeyIpWhitelistMaxLength after normalization.
+var ErrIpWhitelistTooLong = errors.New("internal key ip whitelist too long")
 
 var internalKeyKeyIdPattern = regexp.MustCompile(`^[A-Za-z0-9_-]{1,64}$`)
 

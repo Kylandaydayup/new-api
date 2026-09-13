@@ -3882,7 +3882,7 @@
     "Responses API Version": "Phiên bản API Phản hồi",
     "Restore defaults": "Khôi phục mặc định",
     "Restrict user model request frequency (may impact high concurrency performance)": "Hạn chế tần suất yêu cầu mô hình người dùng (có thể ảnh hưởng đến hiệu suất khi có độ đồng thời cao)",
-    "Restrict which source IPs may use this internal key. Comma-separated IPs, CIDR blocks or \"localhost\". Leave empty to allow any IP.": "Giới hạn địa chỉ IP nguồn nào có thể dùng khóa nội bộ này. Các IP, khối CIDR hoặc \"localhost\" phân tách bằng dấu phẩy. Để trống để cho phép mọi IP.",
+    "Restrict which source IPs may use this internal key. Comma-separated IPs, CIDR blocks or \"localhost\". Leave empty to allow any IP. The check uses the direct connection IP: when behind a reverse proxy, add the proxy IP to the list.": "Giới hạn địa chỉ IP nguồn nào có thể dùng khóa nội bộ này. Các IP, khối CIDR hoặc \"localhost\" phân tách bằng dấu phẩy. Để trống để cho phép mọi IP. Kiểm tra dựa trên IP kết nối trực tiếp: khi đứng sau proxy ngược, hãy thêm IP của proxy vào danh sách.",
     "Result": "Kết quả",
     "Result URL": "URL kết quả",
     "Retain last N days": "Giữ lại N ngày gần nhất",

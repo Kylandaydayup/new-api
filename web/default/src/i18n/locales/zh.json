@@ -3882,7 +3882,7 @@
     "Responses API Version": "响应 API 版本",
     "Restore defaults": "恢复默认",
     "Restrict user model request frequency (may impact high concurrency performance)": "限制用户模型请求频率（可能会影响高并发性能）",
-    "Restrict which source IPs may use this internal key. Comma-separated IPs, CIDR blocks or \"localhost\". Leave empty to allow any IP.": "限制哪些来源 IP 可以使用此内部密钥。支持逗号分隔的 IP、CIDR 网段或 \"localhost\"，留空表示不限制。",
+    "Restrict which source IPs may use this internal key. Comma-separated IPs, CIDR blocks or \"localhost\". Leave empty to allow any IP. The check uses the direct connection IP: when behind a reverse proxy, add the proxy IP to the list.": "限制哪些来源 IP 可以使用此内部密钥。支持逗号分隔的 IP、CIDR 网段或 \"localhost\"，留空表示不限制。校验基于直连 IP：经反向代理访问时，请将代理 IP 加入白名单。",
     "Result": "结果",
     "Result URL": "结果 URL",
     "Retain last N days": "保留最近N天",

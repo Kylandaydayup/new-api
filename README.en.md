@@ -391,6 +391,10 @@ docker run --name new-api -d --restart always \
 > - **Must set** `SESSION_SECRET` - Otherwise login status inconsistent
 > - **Shared Redis must set** `CRYPTO_SECRET` - Otherwise data cannot be decrypted
 
+### 🔐 Internal System Authentication
+
+Internal systems call `/api/internal/*` with the `X-Key-Id` / `X-Key` headers configured under **System Settings → Authentication → Internal System Authentication**. If a key has an IP whitelist, it is checked against the **direct TCP peer IP** (forwarded headers such as `X-Forwarded-For` are ignored). Behind a reverse proxy, all requests appear to come from the proxy's IP — add the proxy IP to the whitelist, or restrict access to `/api/internal/` at the proxy. This check changed from the forwarded client IP to the direct TCP peer IP: when upgrading, replace whitelist entries that were configured for real client IPs behind a proxy with the proxy's IP.
+
 ### 🔄 Channel Retry and Cache
 
 **Retry configuration:** `Settings → Operation Settings → General Settings → Failure Retry Count`

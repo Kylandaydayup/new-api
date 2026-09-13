@@ -398,6 +398,10 @@ docker run --name new-api -d --restart always \
 > - **Doit définir** `SESSION_SECRET` - Sinon l'état de connexion sera incohérent sur plusieurs machines
 > - **Redis partagé doit définir** `CRYPTO_SECRET` - Sinon les données ne pourront pas être déchiffrées
 
+### 🔐 Authentification des systèmes internes
+
+Les systèmes internes appellent `/api/internal/*` avec les en-têtes `X-Key-Id` / `X-Key` configurés dans **Paramètres système → Authentification → Authentification des systèmes internes**. Si une liste blanche IP est définie pour une clé, la vérification utilise l'**IP du pair TCP direct** (les en-têtes transférés tels que `X-Forwarded-For` sont ignorés). Derrière un proxy inverse, toutes les requêtes proviennent de l'IP du proxy — ajoutez l'IP du proxy à la liste blanche, ou restreignez l'accès à `/api/internal/` au niveau du proxy. Cette vérification est passée de l'IP client transférée à l'IP du pair TCP direct : lors de la mise à niveau, remplacez les entrées de liste blanche configurées pour les IP client réelles derrière un proxy par l'IP du proxy.
+
 ### 🔄 Nouvelle tentative de canal et cache
 
 **Configuration de la nouvelle tentative:** `Paramètres → Paramètres de fonctionnement → Paramètres généraux → Nombre de tentatives en cas d'échec`

@@ -3882,7 +3882,7 @@
     "Responses API Version": "Версия API ответов",
     "Restore defaults": "Сбросить к значениям по умолчанию",
     "Restrict user model request frequency (may impact high concurrency performance)": "Ограничить частоту запросов пользовательских моделей (может повлиять на производительность при высокой конкуренции)",
-    "Restrict which source IPs may use this internal key. Comma-separated IPs, CIDR blocks or \"localhost\". Leave empty to allow any IP.": "Ограничивает, какие исходные IP могут использовать этот внутренний ключ. IP-адреса, CIDR-блоки или \"localhost\" через запятую. Оставьте пустым, чтобы разрешить любой IP.",
+    "Restrict which source IPs may use this internal key. Comma-separated IPs, CIDR blocks or \"localhost\". Leave empty to allow any IP. The check uses the direct connection IP: when behind a reverse proxy, add the proxy IP to the list.": "Ограничивает, какие исходные IP могут использовать этот внутренний ключ. IP-адреса, CIDR-блоки или \"localhost\" через запятую. Оставьте пустым, чтобы разрешить любой IP. Проверка выполняется по IP прямого соединения: за обратным прокси добавьте IP прокси в список.",
     "Result": "Результат",
     "Result URL": "URL результата",
     "Retain last N days": "Хранить последние N дней",

@@ -50,8 +50,11 @@ func InternalAuth() func(c *gin.Context) {
 		}
 		c.Set("internal_key_id", internalKey.KeyId)
 		c.Set("internal_key_name", internalKey.Name)
-		if !internalKey.IpAllowed(c.ClientIP()) {
-			common.SysLog("[internal] key=" + internalKey.KeyId + " rejected: source IP " + c.ClientIP() + " is not in the whitelist")
+		// 白名单按 TCP 直连对端判定（RemoteIP 不解析 X-Forwarded-For 等转发头，
+		// 项目未配置受信代理，ClientIP 可被客户端伪造）。反代部署下这里是代理 IP。
+		clientIP := c.RemoteIP()
+		if !internalKey.IpAllowed(clientIP) {
+			common.SysLog("[internal] key=" + internalKey.KeyId + " rejected: source IP " + clientIP + " is not in the whitelist")
 			c.JSON(http.StatusForbidden, gin.H{
 				"success": false,
 				"message": common.TranslateMessage(c, i18n.MsgInternalKeyIpNotAllowed),

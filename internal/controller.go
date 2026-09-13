@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"errors"
 	"net"
 	"net/http"
 	"strconv"
@@ -30,8 +31,19 @@ func validateInternalKeyName(name string) bool {
 	return utf8.RuneCountInString(name) <= 128
 }
 
+// ipWhitelistErrorI18n maps a whitelist normalization failure to its i18n
+// message key, distinguishing over-length results from invalid entries.
+func ipWhitelistErrorI18n(err error) string {
+	if errors.Is(err, ErrIpWhitelistTooLong) {
+		return i18n.MsgInternalKeyIpWhitelistTooLong
+	}
+	return i18n.MsgInternalKeyIpWhitelistInvalid
+}
+
 // normalizeInternalKeyIpWhitelist trims, validates and deduplicates a
 // comma-separated whitelist of IPs, CIDR blocks and the "localhost" keyword.
+// The result is capped at internalKeyIpWhitelistMaxLength bytes to match the
+// varchar(512) column; exceeding it returns ErrIpWhitelistTooLong.
 func normalizeInternalKeyIpWhitelist(raw string) (string, error) {
 	var entries []string
 	seen := make(map[string]bool)
@@ -52,7 +64,11 @@ func normalizeInternalKeyIpWhitelist(raw string) (string, error) {
 			entries = append(entries, entry)
 		}
 	}
-	return strings.Join(entries, ","), nil
+	normalized := strings.Join(entries, ",")
+	if len(normalized) > internalKeyIpWhitelistMaxLength {
+		return "", ErrIpWhitelistTooLong
+	}
+	return normalized, nil
 }
 
 func addInternalKey(c *gin.Context) {
@@ -86,7 +102,7 @@ func addInternalKey(c *gin.Context) {
 	if internalKey.IpWhitelist != nil {
 		normalized, err := normalizeInternalKeyIpWhitelist(*internalKey.IpWhitelist)
 		if err != nil {
-			common.ApiErrorI18n(c, i18n.MsgInternalKeyIpWhitelistInvalid)
+			common.ApiErrorI18n(c, ipWhitelistErrorI18n(err))
 			return
 		}
 		internalKey.IpWhitelist = &normalized
@@ -154,7 +170,7 @@ func updateInternalKey(c *gin.Context) {
 	if internalKey.IpWhitelist != nil {
 		normalized, err := normalizeInternalKeyIpWhitelist(*internalKey.IpWhitelist)
 		if err != nil {
-			common.ApiErrorI18n(c, i18n.MsgInternalKeyIpWhitelistInvalid)
+			common.ApiErrorI18n(c, ipWhitelistErrorI18n(err))
 			return
 		}
 		cleanKey.IpWhitelist = &normalized

@@ -3882,7 +3882,7 @@
     "Responses API Version": "応答APIバージョン",
     "Restore defaults": "既定に戻す",
     "Restrict user model request frequency (may impact high concurrency performance)": "ユーザーモデルのリクエスト頻度を制限する（高並行性パフォーマンスに影響を与える可能性があります）",
-    "Restrict which source IPs may use this internal key. Comma-separated IPs, CIDR blocks or \"localhost\". Leave empty to allow any IP.": "この内部キーを使用できる送信元 IP を制限します。IP、CIDR ブロック、\"localhost\" をカンマ区切りで指定します。空欄にするとすべての IP を許可します。",
+    "Restrict which source IPs may use this internal key. Comma-separated IPs, CIDR blocks or \"localhost\". Leave empty to allow any IP. The check uses the direct connection IP: when behind a reverse proxy, add the proxy IP to the list.": "この内部キーを使用できる送信元 IP を制限します。IP、CIDR ブロック、\"localhost\" をカンマ区切りで指定します。空欄にするとすべての IP を許可します。判定には直接接続の IP が使用されます。リバースプロキシ経由の場合は、プロキシの IP をリストに追加してください。",
     "Result": "結果",
     "Result URL": "結果 URL",
     "Retain last N days": "最新N日間を保持",
