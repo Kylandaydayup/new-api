@@ -177,7 +177,9 @@ export function RechargeFormCard({
     topupInfo?.enable_stripe_topup ||
     enableWaffoTopup ||
     enableWaffoPancakeTopup
-  const hasAnyTopup = hasConfigurableTopup || enableCreemTopup
+  const hasExternalTopup = Boolean(topupLink)
+  const hasAnyTopup =
+    hasConfigurableTopup || enableCreemTopup || hasExternalTopup
   const hasStandardPaymentMethods =
     Array.isArray(topupInfo?.pay_methods) && topupInfo.pay_methods.length > 0
   const showWaffoMethods = Boolean(
@@ -436,6 +438,26 @@ export function RechargeFormCard({
           </div>
         )}
 
+      {topupLink && (
+        <div
+          className={cn(
+            hasConfigurableTopup || enableCreemTopup
+              ? 'border-t pt-5 sm:pt-6'
+              : undefined
+          )}
+        >
+          <Button
+            className='w-full gap-2 sm:w-auto'
+            render={
+              <a href={topupLink} target='_blank' rel='noopener noreferrer' />
+            }
+          >
+            {t('Recharge')}
+            <ExternalLink className='size-4' />
+          </Button>
+        </div>
+      )}
+
       {redemptionEnabled ? (
         <div className='space-y-2.5 border-t pt-5 sm:pt-6'>
           <Label htmlFor='redemption-code' className='text-sm font-medium'>
@@ -459,20 +481,6 @@ export function RechargeFormCard({
               {t('Redeem')}
             </Button>
           </div>
-          {topupLink && (
-            <p className='text-muted-foreground text-xs'>
-              {t('Need a redemption code?')}{' '}
-              <a
-                href={topupLink}
-                target='_blank'
-                rel='noopener noreferrer'
-                className='inline-flex items-center gap-1 underline-offset-4 hover:underline'
-              >
-                {t('Get one here')}
-                <ExternalLink className='size-3' />
-              </a>
-            </p>
-          )}
         </div>
       ) : (
         <Alert>
